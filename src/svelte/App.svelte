@@ -2,7 +2,23 @@
 	import * as L from "partial.lenses";
 	import * as R from "ramda";
 	import { atom, view, read, failableView } from "./svatom.svelte.js";
-	import { clamp } from "./utils.js";
+	import * as eins from "./einsum.js";
+
+	const examples = [
+		"ij",
+		"ji",
+		"ii->i",
+		"ii",
+		"ij->",
+		"ij->j",
+		"ij->i",
+		"ij,ij->ij",
+		"ij,ji->ij",
+		"ij,jk",
+		"ij,kj->ik",
+		"ij,kj->ikj",
+		"ij,kl->ijkl",
+	];
 
 	// Atoms
 	const einsum = atom({
@@ -10,149 +26,36 @@
 		outputs: ["j", "k"],
 	});
 
-	const B1 = R.curry((a, b, c, d) => {
-		return a(b(d))(c(d));
-	});
-
-	const lindex = (xtra) =>
-		L.lens(
-			(a) =>
-				Array(a + xtra)
-					.fill(0)
-					.map((_, i) => i),
-			(c, a) => c.length - xtra,
-		);
-
-	const expect = (message, pred) => (v) => {
-		if (pred(v)) {
-			return v;
-		} else {
-			throw new Error(message);
-		}
-	};
-	null;
-
-	const unqiue = L.lens(R.uniq, (n, o) =>
-		R.filter((oo) => R.any(R.equals(oo), n), o),
+	const inputDimensions = $derived(
+		read(eins.lenses.inputDimensions, einsum).allUniq,
 	);
-
-	const inputTensors = ["inputs", L.elems, "length", lindex(0)];
-	const inputDimensions = ["inputs", L.elems, L.elems];
-	const outputDimensions = [
-		L.choice(
-			["outputs"],
-			[
-				L.foldTraversalLens(L.counts, ["inputs", L.elems, L.elems]),
-				L.reread((m) => [...m.entries()]),
-				L.normalize(R.sortBy(R.prop(0))),
-				L.filter(([x, c]) => c == 1),
-				L.normalize(R.map(R.prop(0))),
-			],
-		),
-	];
+	const outputDimensions = $derived(
+		read(eins.lenses.outputDimensions, einsum).value,
+	);
 
 	const summationDimensions = $derived(
-		R.difference(
-			read(inputDimensions, einsum).allUniq,
-			read(outputDimensions, einsum).value,
-		),
+		R.difference(inputDimensions, outputDimensions),
 	);
 
-	const parser = L.iso(
-		B1(
-			R.curry((a, b) => (b !== null ? `${a}->${b}` : a)),
-			R.compose(R.join(","), R.map(R.join("")), R.prop("inputs")),
-			R.compose(
-				R.ifElse(R.has("length"), R.join(""), R.always(null)),
-				R.prop("outputs"),
-			),
-		),
-		(e) => {
-			try {
-				return R.compose(
-					expect(
-						"Each output dimension must occure at least once as input dimension",
-						R.compose(
-							R.isEmpty,
-							B1(
-								R.difference,
-								R.compose(R.defaultTo([]), R.prop("outputs")),
-								R.compose(R.unnest, R.prop("inputs")),
-							),
-						),
-					),
-					R.compose(
-						B1(
-							R.curryN(2, R.pipe),
-							R.compose(
-								R.assoc("inputs"),
-								R.map(
-									R.compose(
-										R.map(
-											expect(
-												"only single letters are allowed in input dimensions",
-												R.test(/[a-z]/),
-											),
-										),
-										R.split(""),
-									),
-								),
-								R.split(","),
-								R.prop(0),
-							),
-							R.ifElse(
-								R.compose(R.equals(2), R.length),
-								R.compose(
-									R.assoc("outputs"),
-									expect(
-										"output dimensions must be unqiue",
-										B1(
-											R.equals,
-											R.compose(R.length, R.identity),
-											R.compose(R.length, R.uniq),
-										),
-									),
-									R.map(
-										expect(
-											"only single letters are allowed in output dimensions",
-											R.test(/[a-z]/),
-										),
-									),
-									R.split(""),
-									R.prop(1),
-								),
-								R.always(R.assoc("outputs", undefined)),
-							),
-						),
-						R.compose(
-							expect(
-								"only a single -> is allowed to separate input and output",
-								R.compose(R.gte(2), R.length),
-							),
-							R.split("->"),
-							expect(
-								"Notation must not be empty",
-								R.compose(R.not, R.isEmpty),
-							),
-						),
-					)(e),
-				)(Object.create(null));
-			} catch (e) {
-				return e;
-			}
-		},
-	);
-
-	const formatted = failableView(parser, einsum);
+	const formatted = failableView(eins.lenses.parser, einsum);
 	const asJson = view(L.inverse(L.json()), einsum);
 </script>
 
 <section>
 	<h1>Einsum Notation</h1>
 
+	<div class="button-bar">
+		{#each examples as ex}
+			<button type="button" onclick={() => (formatted.value = ex)}
+				>{ex}</button
+			>
+		{/each}
+	</div>
+
 	<textarea
 		class:syntax-error={formatted.hasError}
 		bind:value={formatted.value}
+		onblur={formatted.reset}
 	></textarea>
 
 	<div style:min-height="2em">
@@ -163,7 +66,7 @@
 
 	<pre>{asJson.value}</pre>
 
-	<pre>def sum({read(inputTensors, einsum)
+	<pre>def sum({read(eins.lenses.inputTensors, einsum)
 			.value.map((x) => `input${x}`)
 			.join(", ")}):<!---->
 {#each einsum.value.inputs as inp, i}<!--
@@ -171,53 +74,46 @@
 				.map((x) => `N${x}`)
 				.join(", ")}) = input{i}.shape
 <!---->{/each}
-	result = np.zeros(({read(outputDimensions, einsum)
-			.value.map((x) => `N${x}`)
-			.join(", ")}))
+	result = np.zeros(({outputDimensions.map((x) => `N${x}`).join(", ")}))
 
-{read(outputDimensions, einsum)
-			.value.map(
+{outputDimensions
+			.map(
 				(x, i) =>
 					`${R.join("", R.repeat("\t", i + 1))}for ${x} in range(N${x}):`,
 			)
 			.join("\n")}
-{R.join(
-			"",
-			R.repeat("\t", read(outputDimensions, einsum).value.length + 1),
-		)}total = 0
+{R.join("", R.repeat("\t", outputDimensions.length + 1))}total = 0
 {summationDimensions
 			.map(
 				(x, i) =>
-					`${R.join("", R.repeat("\t", i + read(outputDimensions, einsum).value.length + 1))}for ${x} in range(N${x}):`,
+					`${R.join("", R.repeat("\t", i + outputDimensions.length + 1))}for ${x} in range(N${x}):`,
 			)
 			.join("\n")}
 
 {R.join(
 			"",
-			R.repeat("\t", read(outputDimensions, einsum).value.length + 1),
-		)}output[{read(outputDimensions, einsum)
-			.value.map((x) => `${x}`)
-			.join(", ")}] = total
+			R.repeat("\t", outputDimensions.length + 1),
+		)}output[{outputDimensions.map((x) => `${x}`).join(", ")}] = total
 
 	return result</pre>
 
 	<h3>Input Tensors</h3>
 	<ul>
-		{#each read(inputTensors, einsum).value as t}
+		{#each read(eins.lenses.inputTensors, einsum).value as t}
 			<li>x {t}</li>
 		{/each}
 	</ul>
 
 	<h3>Inputs</h3>
 	<ul>
-		{#each read(inputDimensions, einsum).allUniq as inputDim}
+		{#each inputDimensions as inputDim}
 			<li>{inputDim}</li>
 		{/each}
 	</ul>
 
 	<h3>Outputs</h3>
 	<ul>
-		{#each read(outputDimensions, einsum).all as outputDim}
+		{#each outputDimensions as outputDim}
 			<li>{outputDim}</li>
 		{:else}
 			<li><em>None</em></li>
@@ -314,5 +210,10 @@
 		display: inline-block;
 		font: inherit;
 		cursor: pointer;
+	}
+
+	.button-bar {
+		display: flex;
+		gap: 0.2em;
 	}
 </style>

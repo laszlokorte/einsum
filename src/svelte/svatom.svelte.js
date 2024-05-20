@@ -48,6 +48,10 @@ export function failableView(opticLense, s) {
 		},
 		get hasError() {
 			return currentError !== null
+		},
+		reset() {
+			currentInvalidValue = null
+			currentError = null
 		}
 	}
 }
