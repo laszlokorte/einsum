@@ -63,11 +63,11 @@ export function read(opticLense, s) {
 		},
 
 		get allUniq() {
-			return foldl((a, b) => {
-				a.add(b)
-
-				return a
-			}, new Set(), opticLense, s.value)
+			return [...foldl((a, b) => {
+							a.add(b)
+			
+							return a
+						}, new Set(), opticLense, s.value)]
 		},
 	}
 }

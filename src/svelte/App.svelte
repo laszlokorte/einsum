@@ -37,7 +37,7 @@
 	);
 
 	const inputTensors = ["inputs", L.elems, "length", lindex(0)];
-	const inputDimensions = ["inputs", L.elems, L.flatten];
+	const inputDimensions = ["inputs", L.elems, L.elems];
 	const outputDimensions = [
 		L.choice(
 			["outputs"],
@@ -49,8 +49,14 @@
 				L.normalize(R.map(R.prop(0))),
 			],
 		),
-		L.elems,
 	];
+
+	const summationDimensions = $derived(
+		R.difference(
+			read(inputDimensions, einsum).allUniq,
+			read(outputDimensions, einsum).value,
+		),
+	);
 
 	const parser = L.iso(
 		B1(
@@ -159,8 +165,39 @@
 
 	<pre>def sum({read(inputTensors, einsum)
 			.value.map((x) => `input${x}`)
-			.join(", ")}):
-	let result = np.zeros(())
+			.join(", ")}):<!---->
+{#each einsum.value.inputs as inp, i}<!--
+			as -->	({inp
+				.map((x) => `N${x}`)
+				.join(", ")}) = input{i}.shape
+<!---->{/each}
+	result = np.zeros(({read(outputDimensions, einsum)
+			.value.map((x) => `N${x}`)
+			.join(", ")}))
+
+{read(outputDimensions, einsum)
+			.value.map(
+				(x, i) =>
+					`${R.join("", R.repeat("\t", i + 1))}for ${x} in range(N${x}):`,
+			)
+			.join("\n")}
+{R.join(
+			"",
+			R.repeat("\t", read(outputDimensions, einsum).value.length + 1),
+		)}total = 0
+{summationDimensions
+			.map(
+				(x, i) =>
+					`${R.join("", R.repeat("\t", i + read(outputDimensions, einsum).value.length + 1))}for ${x} in range(N${x}):`,
+			)
+			.join("\n")}
+
+{R.join(
+			"",
+			R.repeat("\t", read(outputDimensions, einsum).value.length + 1),
+		)}output[{read(outputDimensions, einsum)
+			.value.map((x) => `${x}`)
+			.join(", ")}] = total
 
 	return result</pre>
 
@@ -182,6 +219,15 @@
 	<ul>
 		{#each read(outputDimensions, einsum).all as outputDim}
 			<li>{outputDim}</li>
+		{:else}
+			<li><em>None</em></li>
+		{/each}
+	</ul>
+
+	<h3>Summations</h3>
+	<ul>
+		{#each summationDimensions as summationDim}
+			<li>{summationDim}</li>
 		{:else}
 			<li><em>None</em></li>
 		{/each}
