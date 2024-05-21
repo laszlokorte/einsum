@@ -1,4 +1,5 @@
 <script>
+	import favicon from '../../favicon.svg'
 	import * as L from "partial.lenses";
 	import * as R from "ramda";
 	import { atom, view, read, failableView } from "./svatom.svelte.js";
@@ -61,7 +62,7 @@
 </script>
 
 <section>
-	<h1><img src="../../favicon.svg" class="icon" alt="Einsum Icon">Einsum Notation</h1>
+	<h1><img src={favicon} class="icon" alt="Einsum Icon">Einsum Notation</h1>
 
 	<p><strong><a href="https://numpy.org/doc/stable/reference/generated/numpy.einsum.html"><code>np.einsum</code></a> is a <a href="https://numpy.org">numpy</a> function that allows to describe and execute common for-loop-summation patterns in a concise notation.</strong></p>
 	<p>
