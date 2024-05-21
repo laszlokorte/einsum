@@ -26,7 +26,7 @@
 		"ij,kj->ik",
 		"ij,kj->ikj",
 		"ij,kl->ijkl",
-		"in->valid",
+		"not->valid",
 	];
 
 	// Atoms
@@ -53,11 +53,15 @@
 	const asJson = view(L.inverse(L.json()), einsum);
 
 	function mulsum(inputs) {
-		return R.join(' + ', R.addIndex(R.map)((dims, i) => `input${inputToLetter(i)}[(${R.join(',', dims)})]`, inputs))
+		return R.join(' + ', R.addIndex(R.map)((dims, i) => `input${inputToLetter(i)}[(${R.join(', ', dims)})]`, inputs))
 	}
 
 	function inputToLetter(n) {
 		return String.fromCharCode(n+65)
+	}
+
+	function inputsWithDimension(inputs, dim) {
+		return R.unnest(R.addIndex(R.map)((ds, i) => R.unnest(R.addIndex(R.map)((d, di) => d==dim?[[i,di]]:[], ds)), inputs))
 	}
 </script>
 
@@ -174,13 +178,31 @@
 	<PythonComment text="to achieve the same result as the np.einsum call with the given notation" />
 	<PythonDef name="calculateSum" params={R.map((x) => `input${inputToLetter(x)}`, inputTensors)}>
 		{#snippet children()}
-			<PythonComment text="TODO: Extract Dimension sizes from input" />
-			{#each inputDimensions as inDim}
-				<PythonAssign left={`dimSize${inDim.toUpperCase()}`} right={`...`} />
+			<PythonComment text="Check that the number of dimensions of the inputs are as expected" />
+			{#each inputTensors as it}
+				<PythonIndent /><span class="python-kw">assert</span> {`input${inputToLetter(it)}.ndim`} <span class="python-op">==</span> {einsum.value.inputs[it].length}<br>
 			{/each}
 			<br>
-			<PythonComment text="Initialize output array with correct size and dimensions" />
-			<PythonAssign left={`result`} right={`np.zeros((${R.join(',', outputDimensions)}))`} /><br>
+			<PythonComment text="Extract dimension sizes from input array and..." />
+			{#each inputDimensions as inDim}
+				{#each inputsWithDimension(einsum.value.inputs, inDim) as [input,d], i}
+					{#if i==0}
+						<PythonAssign left={`dimSize${inDim.toUpperCase()}`} right={`input${inputToLetter(input)}.shape[${d}]`} />
+					{/if}
+				{/each}
+			{/each}
+			<br>
+			<PythonComment text="...ensure that corresponding dimension sizes match between all inputs" />
+			{#each inputDimensions as inDim}
+				{#each inputsWithDimension(einsum.value.inputs, inDim) as [input,d], i}
+					{#if i>0}
+						<PythonIndent /><span class="python-kw">assert</span> {`dimSize${inDim.toUpperCase()}`} == {`input${inputToLetter(input)}.shape[${d}]`}<br>
+					{/if}
+				{/each}
+			{/each}
+			<br>
+			<PythonComment text="Initialize output array with corresponding number of dimensions and size per dimension" />
+			<PythonAssign left={`result`} right={`np.zeros((${R.join(', ', outputDimensions)}))`} /><br>
 			<PythonComment text={'Iterate over output dimensions'} />
 			{@render freeLoop(outputDimensions)}
 			<PythonReturn value={`result`} />
@@ -188,7 +210,7 @@
 	</PythonDef>
 	<br>
 	<PythonComment text="Call manually implemented python function" />
-	<PythonAssign left={`out`} right={`calculateSum(${R.map((x) => `input${inputToLetter(x)}`, inputTensors)})`} />
+	<PythonAssign left={`out`} right={`calculateSum(${R.join(', ', R.map((x) => `input${inputToLetter(x)}`, inputTensors))})`} />
 {/snippet}
 
 {#snippet freeLoop(remaining)}
@@ -221,14 +243,14 @@
 	<PythonComment text={'Sum accross all dimension that do not occure in output array'} />
 	{@render sumLoop(summationDimensions)}
 	<PythonComment text={'Assign sum into output array'} />
-	<PythonAssign left={`result[(${R.join(',', outputDimensions)})]`} right={`accum`} /><br>
+	<PythonAssign left={`result[(${R.join(', ', outputDimensions)})]`} right={`accum`} /><br>
 	{:else}
 	{#if einsum.value.inputs.length > 1}
 	<PythonComment text={'Assign sum into output array'} />
 	{:else}
 	<PythonComment text={'Assign into output array'} />
 	{/if}
-	<PythonAssign left={`result[(${R.join(',', outputDimensions)})]`} op={'='} right={mulsum(einsum.value.inputs)} /><br>
+	<PythonAssign left={`result[(${R.join(', ', outputDimensions)})]`} op={'='} right={mulsum(einsum.value.inputs)} /><br>
 	{/if}
 {/snippet}
 
