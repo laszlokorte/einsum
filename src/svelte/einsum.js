@@ -7,7 +7,7 @@ export const lenses = {
 	unique: L.lens(R.uniq, (n, o) =>
 		R.filter((oo) => R.any(R.equals(oo), n), o),
 	),
-	inputTensors: ["inputs", L.elems, "length", lindex(0)],
+	inputTensors: ["inputs", "length", lindex(0)],
 	inputDimensions: ["inputs", L.elems, L.elems],
 	outputDimensions: [
 		L.choice(
@@ -56,7 +56,7 @@ export const lenses = {
 									R.compose(
 										R.map(
 											expect(
-												"only single letters are allowed in input dimensions",
+												"only single letters (a-z) are allowed in input dimensions",
 												R.test(/[a-z]/),
 											),
 										),
@@ -80,7 +80,7 @@ export const lenses = {
 									),
 									R.map(
 										expect(
-											"only single letters are allowed in output dimensions",
+											"only single letters (a-z) are allowed in output dimensions.",
 											R.test(/[a-z]/),
 										),
 									),
@@ -96,10 +96,6 @@ export const lenses = {
 								R.compose(R.gte(2), R.length),
 							),
 							R.split("->"),
-							expect(
-								"Notation must not be empty",
-								R.compose(R.not, R.isEmpty),
-							),
 						),
 					)(e),
 				)(Object.create(null));

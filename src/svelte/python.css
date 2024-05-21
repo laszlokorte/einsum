@@ -1,0 +1,21 @@
+.python-kw {
+	font-weight: bold;
+	color: #A0D2E5;
+}
+
+.python-comma {
+	color: #ccc;
+}
+.python-colon {
+	color: #ccc;
+}
+.python-paren {
+	color: #ccc;
+}
+.python-op {
+	color: #ccc;
+}
+
+.python-comment {
+	color: #aaa;
+}

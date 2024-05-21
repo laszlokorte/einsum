@@ -23,7 +23,7 @@ export function view(opticLense, s) {
 	}
 }
 
-export function failableView(opticLense, s) {
+export function failableView(opticLense, s, fastValid) {
 	let currentInvalidValue = $state(null)
 	let currentError = $state(null)
 
@@ -32,6 +32,7 @@ export function failableView(opticLense, s) {
 			return !$state.is(currentError, null) ? currentInvalidValue : get(opticLense, s.value)
 		},
 		set value(newVal) {
+			newVal = fastValid(newVal)
 			const transformed = set(opticLense, newVal, s.value)
 			
 			if (!(transformed instanceof Error)) {
