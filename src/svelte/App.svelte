@@ -1,5 +1,5 @@
 <script>
-	import favicon from '../../favicon.svg'
+	import favicon from '/favicon.svg'
 	import * as L from "partial.lenses";
 	import * as R from "ramda";
 	import { atom, view, read, failableView } from "./svatom.svelte.js";
@@ -33,7 +33,7 @@
 	const inputField = atom()
 	const einsum = atom({
 		inputs: [["i"]],
-		outputs: ["i","i"],
+		outputs: ["i"],
 	});
 
 	const inputDimensions = $derived(
@@ -106,6 +106,7 @@
 		use:forcePlain
 		class:syntax-error={formatted.hasError}
 		bind:textContent={formatted.value}
+		onblur={() => {formatted.reset()}}
 	></span><span class="code-template-end">", {R.join(', ', R.map((x) => `input${inputToLetter(x)}`, inputTensors))})</span>
 
 	<span role="button" tabindex="-1" onkeypress={() => inputField.value.focus()} onclick={() => inputField.value.focus()} for={'input-field'} class="code-template-prompt">Edit here!</span>
@@ -114,7 +115,8 @@
 	{#if formatted.hasError}
 		<div class="error-message">
 			{formatted.error.message}<br>
-			<em>The general einsum syntax is <code>/[a-z]*(,[a-z]*)*(->[a-z]*)?/</code></em>
+			<em>The general einsum syntax is <code>/[a-z]*(,[a-z]*)*(->[a-z]*)?/</code></em><br>
+			<small>Numpy does actually also support using Ellipsis (...) to broadcast across dimensions, but this is not implemented in this tool.</small>
 		</div>
 	{/if}
 
@@ -122,7 +124,10 @@
 		
 
 		
-		<h3>Python/Numpy Notation</h3>
+		<h3>Corresponding Python/Numpy Notation</h3>
+		<p>
+			The <code>np.einsum</code> call above could alternatively written using explicit <code>for</code>-loops like this:
+		</p>
 		<div class="code-snippet">
 			{@render pythonImpl()}
 		</div>
@@ -180,7 +185,7 @@
 		{#snippet children()}
 			<PythonComment text="Check that the number of dimensions of the inputs are as expected" />
 			{#each inputTensors as it}
-				<PythonIndent /><span class="python-kw">assert</span> {`input${inputToLetter(it)}.ndim`} <span class="python-op">==</span> {einsum.value.inputs[it].length}<br>
+				<PythonIndent /><span class="python-kw">assert</span> {`input${inputToLetter(it)}.ndim`} <span class="python-op">==</span> {einsum.value.inputs[it].length}, <span class="python-string">"{`input${inputToLetter(it)}`} must have {einsum.value.inputs[it].length} dimensions"</span><br>
 			{/each}
 			<br>
 			<PythonComment text="Extract dimension sizes from input array and..." />
@@ -196,13 +201,13 @@
 			{#each inputDimensions as inDim}
 				{#each inputsWithDimension(einsum.value.inputs, inDim) as [input,d], i}
 					{#if i>0}
-						<PythonIndent /><span class="python-kw">assert</span> {`dimSize${inDim.toUpperCase()}`} == {`input${inputToLetter(input)}.shape[${d}]`}<br>
+						<PythonIndent /><span class="python-kw">assert</span> {`dimSize${inDim.toUpperCase()}`} == {`input${inputToLetter(input)}.shape[${d}]`}, <span class="python-string">"{`input${inputToLetter(input)}`} has the wrong size along axis {d}"</span><br>
 					{/if}
 				{/each}
 			{/each}
 			<br>
 			<PythonComment text="Initialize output array with corresponding number of dimensions and size per dimension" />
-			<PythonAssign left={`result`} right={`np.zeros((${R.join(', ', outputDimensions)}))`} /><br>
+			<PythonAssign left={`result`} right={`np.zeros((${R.join(', ', R.map(d=>`dimSize${d.toUpperCase()}`,outputDimensions))}))`} /><br>
 			<PythonComment text={'Iterate over output dimensions'} />
 			{@render freeLoop(outputDimensions)}
 			<PythonReturn value={`result`} />
@@ -293,7 +298,7 @@
 {/snippet}
 
 <footer>
-	<a href="https://tools.laszlokorte.de" title="More education tools">More education tools</a>
+	<a href="https://tools.laszlokorte.de" title="More educational tools">More educational tools</a>
 </footer>
 
 <style>
@@ -331,7 +336,7 @@
 	}
 
 	.code-template {
-		background: #333;
+		background: #15218d;
 		color: #fff;
 		padding: 1em;
 		font-size: 2em;

@@ -19,3 +19,11 @@
 .python-comment {
 	color: #aaa;
 }
+
+.python-string {
+	color: #e8c300;
+}
+
+.python-number {
+	color: #5BD000;
+}
