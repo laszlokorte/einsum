@@ -2,7 +2,7 @@
 
 ![Screenshot of the app](preview.png)
 
-[Live demo](https://static.laszlkorte.de/einsum)
+[Live demo](https://static.laszlokorte.de/einsum)
 
 `np.einsum` is a numpy function that allows to describe and execute common for-loop-summation patterns in a concise notation.
 
