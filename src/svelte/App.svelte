@@ -69,21 +69,26 @@
 	<h1><img src={favicon} class="icon" alt="Einsum Icon">Einsum Notation</h1>
 
 	<p><strong><a href="https://numpy.org/doc/stable/reference/generated/numpy.einsum.html"><code>np.einsum</code></a> is a <a href="https://numpy.org">numpy</a> function that allows to describe and execute common for-loop-summation patterns in a concise notation.</strong></p>
-	<p>
-		When working with multidimensional arrays a very common calculation is to multiply elements of multiple arrays together and optionally sum the results along a dimension. A few examples for such kind of operation are the <a href="https://numpy.org/doc/stable//reference/generated/numpy.dot.html">dot-product</a>, the <a href="https://numpy.org/doc/stable//reference/generated/numpy.matmul.html">vector-matrix-product</a>, or the <a href="https://numpy.org/doc/stable//reference/generated/numpy.outer.html">outer product</a>. 
-	</p>
-	<p>
-		For many of these operations libraries like numpy provide individual implementations. For multiplying two matrices for example it is not necessary to manually iterate over the rows and columns of the matrices, but instead <code>np.matmul(A,B)</code> can be used. The advantage is both a higher level of abstraction and the opportunity to rely on internal optimazations of the math library, in this case numpy.
-	</p>
-	<p>
-		But only some of these array operations are common enough that they have a proper name and are provided by a math library. Sometimes a more specific kind of operation is needed to combine multiple arrays. In such a case it might be necessary to fall back to hand written loops. <em>Or not!</em>
-	</p>
-	<p>
-		Einsum is a domain specific language (DSL) that allows to express a specific class of common array iteration patterns in a concise way. It in inspired by the <a href="https://en.wikipedia.org/wiki/Einstein_notation">Einstein notation</a>, hence the name. <a href="https://ajcr.net/Basic-guide-to-einsum/">There exist</a> <a href="https://rockt.github.io/2018/04/30/einsum">already</a> <a href="https://obilaniu6266h16.wordpress.com/2016/02/04/einstein-summation-in-numpy/">plenty of</a> excellent and detailled explanations of einsum online. This tool contributes by providing an interactive approach to convert einsum notation into the corresponding python code.
-	</p>
-	<p>
-		Try the examples below and see how much more concise the einsum notations are.
-	</p>
+	
+	<details>
+		<summary><span>Introduction&hellip;</span></summary>
+		
+		<p>
+			When working with multidimensional arrays a very common calculation is to multiply elements of multiple arrays together and optionally sum the results along a dimension. A few examples for such kind of operation are the <a href="https://numpy.org/doc/stable//reference/generated/numpy.dot.html">dot-product</a>, the <a href="https://numpy.org/doc/stable//reference/generated/numpy.matmul.html">vector-matrix-product</a>, or the <a href="https://numpy.org/doc/stable//reference/generated/numpy.outer.html">outer product</a>. 
+		</p>
+		<p>
+			For many of these operations libraries like numpy provide individual implementations. For multiplying two matrices for example it is not necessary to manually iterate over the rows and columns of the matrices, but instead <code>np.matmul(A,B)</code> can be used. The advantage is both a higher level of abstraction and the opportunity to rely on internal optimazations of the math library, in this case numpy.
+		</p>
+		<p>
+			But only some of these array operations are common enough that they have a proper name and are provided by a math library. Sometimes a more specific kind of operation is needed to combine multiple arrays. In such a case it might be necessary to fall back to hand written loops. <em>Or not!</em>
+		</p>
+		<p>
+			Einsum is a domain specific language (DSL) that allows to express a specific class of common array iteration patterns in a concise way. It in inspired by the <a href="https://en.wikipedia.org/wiki/Einstein_notation">Einstein notation</a>, hence the name. <a href="https://ajcr.net/Basic-guide-to-einsum/">There exist</a> <a href="https://rockt.github.io/2018/04/30/einsum">already</a> <a href="https://obilaniu6266h16.wordpress.com/2016/02/04/einstein-summation-in-numpy/">plenty of</a> excellent and detailled explanations of einsum online. This tool contributes by providing an interactive approach to convert einsum notation into the corresponding python code.
+		</p>
+		<p>
+			Try the examples below and see how much more concise the einsum notations are.
+		</p>
+	</details>
 
 	<h3>Enter your Einsum notation</h3>
 
@@ -175,6 +180,11 @@
 			</ul>
 		</div>
 	</div>
+
+		
+	<footer>
+		<a href="https://tools.laszlokorte.de" title="More educational tools">More educational tools</a>
+	</footer>
 </section>
 
 
@@ -297,12 +307,35 @@
 	</math>
 {/snippet}
 
-<footer>
-	<a href="https://tools.laszlokorte.de" title="More educational tools">More educational tools</a>
-</footer>
 
 <style>
 	@import './python.css';
+
+	details {
+		padding: 0.5em 1em;
+		transition: background 0.08s ease;
+	}
+
+	details[open] {
+		background: #fefaf0;
+	}
+
+	summary {
+		padding: 0.4em 0;
+		cursor: pointer;
+		user-select: none;
+	}
+
+	summary > span {
+
+		text-decoration: underline;
+	}
+
+	hr {
+		background: none;
+		border: none;
+		border-top: 1px solid #333;
+	}
 
 	footer {
 		text-align: center;
@@ -333,6 +366,10 @@
 		font-size: 1.3em;
 		line-height: 1.4;
 
+	}
+
+	a {
+		color: #15218d;
 	}
 
 	.code-template {
